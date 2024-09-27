@@ -5,6 +5,8 @@ import requests
 from lxml import etree
 from lxml import html
 from unidecode import unidecode
+import time
+import datetime
 
 try:
     from urllib.request import urlopen
@@ -81,12 +83,19 @@ def parse_pubmed_web_tree(tree):
     pubdatebook = tree.xpath(
         '//pubmedbookdata//history//pubmedpubdate[@pubstatus="medline"]'
     )
-    if len(pubdate) >= 1 and pubdate[0].find("year") is not None:
-        year = pubdate[0].find("year").text
-    elif len(pubdatebook) >= 1 and pubdatebook[0].find("year") is not None:
-        year = pubdatebook[0].find("year").text
+    if len(pubdate) >= 1:
+        year = pubdate[0].findtext("year","")
+        month = pubdate[0].findtext("month","")
+        day = pubdate[0].findtext("day","")
+    elif len(pubdatebook):
+        year = pubdatebook[0].findtext("year","")
+        month = pubdatebook[0].findtext("month","")
+        day = pubdatebook[0].findtext("day","")
     else:
-        year = ""
+        year, month, day = ""
+
+    tstrip = datetime.datetime.strptime(f"{day or 1}/{month or 1}/{year or 1000}","%d/%m/%Y")
+    timestamp = datetime.datetime.timestamp(tstrip)
 
     affiliations = list()
     if tree.xpath("//affiliationinfo/affiliation") is not None:
@@ -167,6 +176,9 @@ def parse_pubmed_web_tree(tree):
         "doi": doi,
         "pii": pii,
         "year": year,
+        "month": month,
+        "day": day,
+        "timestamp": timestamp,
         "language": language,
         "version_id": version_id,
         "version_date": version_date,
